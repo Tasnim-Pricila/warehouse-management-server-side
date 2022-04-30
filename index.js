@@ -24,10 +24,21 @@ async function run () {
         const carCollection = client.db('warehouseManagement').collection('cars');
 
         app.get('/cars', async (req,res)=>{
-            const query = {};
-            const cursor = carCollection.find(query);
-            const result = await cursor.toArray();
-            res.send(result);
+            
+            if(req.query.email){
+                // console.log(email);
+                const query = {email: email};
+                const cursor = carCollection.find(query);
+                const result = await cursor.toArray();
+                res.send(result);
+            }
+            else{
+                const query = {};
+                const cursor = carCollection.find(query);
+                const result = await cursor.toArray();
+                res.send(result);
+            }
+            
         })
         app.get('/cars/:id', async (req,res)=>{
             const id = req.params.id;
@@ -35,6 +46,8 @@ async function run () {
             const result = await carCollection.findOne(query);
             res.send(result);
         })
+       
+        
     }
     finally{
 
