@@ -26,7 +26,7 @@ async function run () {
         app.get('/cars', async (req,res)=>{
             
             if(req.query.email){
-                // console.log(email);
+                const email= req.query.email;
                 const query = {email: email};
                 const cursor = carCollection.find(query);
                 const result = await cursor.toArray();
@@ -67,10 +67,15 @@ async function run () {
             const query = {_id: ObjectId(id)};
             const result = await carCollection.deleteOne(query);
             res.send(result);
+        })    
+
+        app.post('/cars', async (req, res)=> {
+            const newCars = req.body;
+            const result = await carCollection.insertOne(newCars);
+            res.send(result);
         })
-       
-        
     }
+    
     finally{
 
     }
