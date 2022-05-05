@@ -1,59 +1,112 @@
 const express = require('express');
 const cors = require('cors');
-const res = require('express/lib/response');
-const app = express();
-require('dotenv').config();
-const port = process.env.PORT || 5000;
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+require('dotenv').config();
+
+const app = express();
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req,res) => {
+// function verifyJWT(req, res, next) {
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader) {
+//         return res.status(401).send({ message: "Unauthorized Access" });
+//     }
+//     const token = authHeader.split(' ')[1];
+//     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+//         if (err) {
+//             return res.status(403).send({ message: "Forbidden Access" });
+
+//         }
+//         console.log(decoded);
+//         req.decoded = decoded;
+        //    nodemonnext();
+//     })
+//     // console.log('Inside verifyJWT', authHeader);
+//    
+// }
+
+
+app.get('/', (req, res) => {
     res.send("Cars are coming");
 })
-
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.hcyv7.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
-async function run () {
-    try{
+async function run() {
+    try {
         await client.connect();
         const carCollection = client.db('warehouseManagement').collection('cars');
 
-        app.get('/cars', async (req,res)=>{
-            
-            if(req.query.email){
-                const email= req.query.email;
-                const query = {email: email};
-                const cursor = carCollection.find(query);
-                const result = await cursor.toArray();
-                res.send(result);
+        app.post('/login', async (req, res) => {
+            const email = req.body;
+            const accessToken = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET,
+                {
+                    expiresIn: '1d'
+                });
+            res.send({ accessToken });
+            // console.log(user);
+        })
+
+        // GET 
+        app.get('/cars', async (req, res) => {
+            // Get by email 
+            if (req.query.email) {
+                const authHeader = req.headers.authorization;
+                // console.log(authHeader);
+                if (!authHeader) {
+                    return res.status(401).send({ message: "Unauthorized Access" });
+                }
+                const token = authHeader.split(' ')[1];
+                jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+                    if (err) {
+                        return res.status(403).send({ message: "Forbidden Access" });
+
+                    }
+                    // console.log(decoded);
+                    req.decoded = decoded;
+                })
+                const email = req.query.email;
+                const decodedEmail = req.decoded.email;
+                if (email === decodedEmail) {
+                    const query = { email: email };
+                    const cursor = carCollection.find(query);
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+                else {
+                    res.status(403).send({ message: "Forbidden Access" });
+                }
             }
-            else{
+            else {
                 const query = {};
                 const cursor = carCollection.find(query);
                 const result = await cursor.toArray();
                 res.send(result);
             }
-            
         })
-        app.get('/cars/:id', async (req,res)=>{
+
+
+        // GET by ID 
+        app.get('/cars/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: ObjectId(id)}
+            const query = { _id: ObjectId(id) }
             const result = await carCollection.findOne(query);
             res.send(result);
         })
 
+        // UPDATE 
         app.put('/cars/:id', async (req, res) => {
             const id = req.params.id;
             const updated = req.body;
-            const query = {_id : ObjectId(id)};
-            const options = {upsert: true};
+            const query = { _id: ObjectId(id) };
+            const options = { upsert: true };
             const updatedDoc = {
-                $set:{
+                $set: {
                     quantity: updated.quantity
                 }
             };
@@ -64,25 +117,26 @@ async function run () {
         // Delete 
         app.delete('/cars/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: ObjectId(id)};
+            const query = { _id: ObjectId(id) };
             const result = await carCollection.deleteOne(query);
             res.send(result);
-        })    
+        })
 
-        app.post('/cars', async (req, res)=> {
+        // POST 
+        app.post('/cars', async (req, res) => {
             const newCars = req.body;
             const result = await carCollection.insertOne(newCars);
             res.send(result);
         })
     }
-    
-    finally{
+
+    finally {
 
     }
 }
 run().catch(console.dir);
 
 
-app.listen(port, ()=>{
+app.listen(port, () => {
     console.log("Listening to port", port);
 })
