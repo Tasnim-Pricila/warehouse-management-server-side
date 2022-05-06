@@ -79,7 +79,6 @@ async function run() {
                 }
             }
             else {
-                console.log('query', req.query)
                 const activePage = parseInt(req.query.activePage);
                 const limit = parseInt(req.query.limit);
                 const query = {};
