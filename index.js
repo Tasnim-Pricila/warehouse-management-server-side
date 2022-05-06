@@ -23,7 +23,7 @@ app.use(express.json());
 //         }
 //         console.log(decoded);
 //         req.decoded = decoded;
-        //    nodemonnext();
+//    nodemonnext();
 //     })
 //     // console.log('Inside verifyJWT', authHeader);
 //    
@@ -49,7 +49,6 @@ async function run() {
                     expiresIn: '1d'
                 });
             res.send({ accessToken });
-            // console.log(user);
         })
 
         // GET 
@@ -57,7 +56,6 @@ async function run() {
             // Get by email 
             if (req.query.email) {
                 const authHeader = req.headers.authorization;
-                // console.log(authHeader);
                 if (!authHeader) {
                     return res.status(401).send({ message: "Unauthorized Access" });
                 }
@@ -65,9 +63,7 @@ async function run() {
                 jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
                     if (err) {
                         return res.status(403).send({ message: "Forbidden Access" });
-
                     }
-                    // console.log(decoded);
                     req.decoded = decoded;
                 })
                 const email = req.query.email;
@@ -83,13 +79,27 @@ async function run() {
                 }
             }
             else {
+                console.log('query', req.query)
+                const activePage = parseInt(req.query.activePage);
+                const limit = parseInt(req.query.limit);
                 const query = {};
                 const cursor = carCollection.find(query);
-                const result = await cursor.toArray();
+                let result;
+                if (activePage || limit) {
+                    result = await cursor.skip(activePage * limit).limit(limit).toArray();
+                }
+                else {
+                    result = await cursor.toArray();
+                }
                 res.send(result);
             }
         })
 
+        // Total CAr 
+        app.get('/totalCar', async (req, res) => {
+            const result = await carCollection.estimatedDocumentCount();
+            res.send({ result });
+        })
 
         // GET by ID 
         app.get('/cars/:id', async (req, res) => {
